@@ -1,0 +1,19 @@
+.header__box {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+@media screen and (max-width: 900px){
+  .header__box {
+    margin-right: 30px;
+  }
+}
+
+@media screen and (max-width: 600px){
+  .header__box {
+    flex-direction: column;
+    margin-top: 0;
+  }
+}

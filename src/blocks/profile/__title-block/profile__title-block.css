@@ -1,0 +1,17 @@
+.profile__title-block {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 10px;
+  position: relative;
+}
+@media screen and (max-width: 800px){
+  .profile__title-block {
+    margin-left: 42px;
+    margin-bottom: 7px;
+  }
+}
+@media screen and (max-width: 540px){
+  .profile__title-block {
+    margin-left: 28px;
+  }
+}

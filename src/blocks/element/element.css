@@ -1,0 +1,11 @@
+.element {
+  margin: 0;
+  width: 100%;
+  max-width: 282px;
+  background-color: #FFFFFF;
+  border-radius: 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+}
+
