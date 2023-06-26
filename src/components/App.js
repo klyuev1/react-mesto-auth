@@ -38,26 +38,29 @@ function App() {
   const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] = React.useState(false);
   const [selectedCard, setSelectedCard] = React.useState({});
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = React.useState(false);
+
   //---
   
   // React.useEffect. Загружаем данные пользователя и проверяем наличие токена
   React.useEffect(() => {
     Promise.all([api.getUserInfo(), api.getInitialCards()])
     .then((res) => {
-      const [Userdata, Cardsdata] = res;
-        setCurrentUser(Userdata);
-        setCards(Cardsdata);
+      const [userData, cardsData] = res;
+        setCurrentUser(userData);
+        setCards(cardsData);
     })
     .catch((err) => {
       console.log(err);
     });
     tokenCheck();
-  },[]);
+  },[email]);
   //---
   
   // Auth.metods
   // Функция сабмита регистрации. Отрисовка попапа. Прокидывание в sign-in
   function handleRegister(email, password) {
+    setIsLoading(true);
     auth.register(email, password)
     .then(() =>{
       setTitleInfo("Вы успешно зарегистрировались!");
@@ -70,11 +73,13 @@ function App() {
     })
     .finally(() =>{
       handleInfoTooltipClick();
+      setIsLoading(false);
     })
   }
 
   // Функция сабмита логина. Отрисовка попапа. Прокидывание в защищенный роут
   function handleLogin(email, password) {
+    setIsLoading(true);
     auth.authorize(email, password)
       .then((data) => {
         if (data){
@@ -92,6 +97,7 @@ function App() {
       })
       .finally(() =>{
         handleInfoTooltipClick();
+        setIsLoading(false);
       })
   }
 
@@ -100,13 +106,15 @@ function App() {
       const jwt = localStorage.getItem("jwt");
     if (jwt){
       // проверим токен
-      auth.getContent(jwt).then((res) => {
+      auth.getContent(jwt)
+      .then((res) => {
         if (res){
           setEmail(res.data.email);
           setLoggedIn(true);
           navigate("/", {replace: true});
         }
-      });
+      })
+      .catch((err) => console.log(err));
     }
   }
   
@@ -145,6 +153,23 @@ function App() {
     setSelectedCard({});
     setIsInfoTooltipOpen(false);
   }
+  
+  // Закрытие попапов по клавише esc
+  const isOpen = isEditAvatarPopupOpen || isEditProfilePopupOpen || isAddPlacePopupOpen || selectedCard.link
+
+  React.useEffect(() => {
+    function closeByEscape(evt) {
+      if(evt.key === 'Escape') {
+        closeAllPopups();
+      }
+    }
+    if(isOpen) {
+      document.addEventListener('keydown', closeByEscape);
+      return () => {
+        document.removeEventListener('keydown', closeByEscape);
+      }
+    }
+  }, [isOpen]);
   //---
 
   // Обработчики
@@ -152,7 +177,8 @@ function App() {
   function handleCardLike(card) {
     const isLiked = card.likes.some(i => i._id === currentUser._id);
 
-    api.changeLikeCardStatus(card._id, !isLiked).then((newCard) => {
+    api.changeLikeCardStatus(card._id, !isLiked)
+    .then((newCard) => {
       setCards((state) => state.map((c) => c._id === card._id ? newCard : c));
     })
     .catch((err) => console.log(err));
@@ -160,42 +186,47 @@ function App() {
 
   // Обработчик удаления карточки
   function handleCardDelete(card) {
+    setIsLoading(true);
     api.deleteCard(card._id)
     .then(() => {
       setCards((state) => state.filter((c) => c._id !== card._id));
     })
-    .catch((err) => {
-      console.log(err);
-    });
+    .catch((err) => console.log(err))
+    .finally(() => setIsLoading(false));
   }
 
   // Обработчик изменения профиля (в инпут попадают данные из попапа)
   function handleUpdateUser(name, about) {
+    setIsLoading(true);
     api.patchUserInfo(name, about)
     .then((data) => {
       setCurrentUser(data);
     })
     .then(() => closeAllPopups())
-    .catch((err) => console.log(err));
-    
+    .catch((err) => console.log(err))
+    .finally(() => setIsLoading(false));
   }
   
   // Обработчик изменения аватара (в инпут попадают данные из попапа)
   function handleUpdateAvatar(avatar) {
+    setIsLoading(true);
     api.patchAvatar(avatar)
     .then((data) => {
       setCurrentUser(data);
     })
     .then(() => closeAllPopups())
-    .catch((err) => console.log(err));
+    .catch((err) => console.log(err))
+    .finally(() => setIsLoading(false));
   }
 
   // Обработчик добавления карточки (в инпут попадают данные из попапа)
   function handleAddPlaceSubmit(name, link) {
+    setIsLoading(true);
     api.postNewCard(name, link)
     .then((newCard) => setCards([newCard, ...cards]))
     .then(() => closeAllPopups())
-    .catch((err) => console.log(err));
+    .catch((err) => console.log(err))
+    .finally(() => setIsLoading(false));
   }
   //---
 
@@ -206,28 +237,23 @@ function App() {
 
           <Route path="/sign-up" element={
             <>
-              <Header
-                link="/sign-in"
-                text="Войти"
-              />
+              <Header/>
               <Register
                 title="Регистрация"
-                nameButtonSubmit="Зарегистрироваться"
+                nameButtonSubmit={isLoading? 'Регистрация...' : 'Зарегистрироваться'}
                 nameLink="Уже зарегистрированы? Войти"
                 onRegister={handleRegister}
+                
               />
             </>
           }/>
 
           <Route path="/sign-in" element={
             <>
-              <Header
-                link="/sign-up"
-                text="Регистрация"
-              />
+              <Header/>
               <Login
                 title="Вход"
-                nameButtonSubmit="Войти"
+                nameButtonSubmit={isLoading? 'Вход...' : 'Войти'}
                 onLogin={handleLogin}
 
               />
@@ -238,8 +264,6 @@ function App() {
             <>
               <Header
                 email={email}
-                link="/sign-in"
-                text="Выйти"
                 OnOut={signOut}
               />
               <ProtectedRoute
@@ -263,24 +287,27 @@ function App() {
           isOpen={isEditProfilePopupOpen} 
           onClose={closeAllPopups}
           onUpdateUser = {handleUpdateUser}
+          isLoading = {isLoading}
         />
 
         <EditAvatarPopup
           isOpen={isEditAvatarPopupOpen}
           onClose={closeAllPopups}
           onUpdateAvatar={handleUpdateAvatar}
+          isLoading = {isLoading}
         />
 
         <AddPlacePopup
           isOpen={isAddPlacePopupOpen}
           onClose={closeAllPopups}
           onUpdateCard={handleAddPlaceSubmit}
+          isLoading = {isLoading}
         />
 
-        <PopupWithForm 
+        <PopupWithForm
           name = "delete"
           title = "Вы уверены?"
-          nameButtonSave = "Да"
+          nameButtonSave = {isLoading? 'Сохранение...' : 'Да'}
         />
 
         <ImagePopup 

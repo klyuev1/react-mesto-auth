@@ -40,7 +40,7 @@ function Register({title,nameButtonSubmit, nameLink, onRegister}) {
         />
         <button type="submit" className="login__submit">{nameButtonSubmit}</button>
       </form>
-      <Link className="login__link" to="/reviews">{nameLink}</Link>
+      <Link className="login__link" to="/sign-in">{nameLink}</Link>
     </div>
   );
 }
